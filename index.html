@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>오토허브셀카 매출매입 관리</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+/* ── CSS 변수 ───────────────────────────────────── */
+:root {
+  --bg:       #fafaf8;
+  --surface:  #ffffff;
+  --surface2: #f0ede8;
+  --border:   #e8e6de;
+  --text:     #2c2c2a;
+  --muted:    #888780;
+  --blue:     #185fa5;
+  --blue-bg:  #e6f1fb;
+  --green:    #3b6d11;
+  --green-bg: #eaf3de;
+  --red:      #a32d2d;
+  --red-bg:   #fcebeb;
+  --amber:    #854f0b;
+  --amber-bg: #faeeda;
+  --orange:   #c55a11;
+  --font:     'Noto Sans KR', sans-serif;
+  --mono:     'JetBrains Mono', monospace;
+  --radius:   10px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; font-size: 14px; }
+
+/* ── 헤더 ───────────────────────────────────────── */
+header {
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  padding: 0 24px; height: 52px;
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 100;
+}
+.logo { font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.logo-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--orange); }
+.header-right { display: flex; align-items: center; gap: 10px; }
+.update-time { font-size: 11px; color: var(--muted); font-family: var(--mono); }
+
+/* ── 버튼 공통 ─────────────────────────────────── */
+.btn {
+  font-size: 12px; padding: 6px 14px; border-radius: 6px;
+  border: 1px solid var(--border); background: var(--surface2);
+  color: var(--text); cursor: pointer; font-family: var(--font);
+  transition: background .15s;
+}
+.btn:hover { background: var(--border); }
+.btn.loading { opacity: .6; cursor: wait; }
+.btn-blue { color: var(--blue); background: var(--surface); }
+.btn-blue:hover { background: var(--blue-bg); border-color: #b5d4f4; }
+
+/* ── 컨테이너 ──────────────────────────────────── */
+.container { max-width: 1440px; margin: 0 auto; padding: 20px 24px; }
+
+/* ── 탭 바 ─────────────────────────────────────── */
+.tab-section { display: flex; gap: 16px; align-items: center; margin-bottom: 20px; flex-wrap: wrap; }
+.tab-group { display: flex; flex-direction: column; gap: 4px; }
+.tab-group-label { font-size: 10px; color: var(--muted); font-weight: 700; letter-spacing: .5px; padding-left: 4px; }
+.tab-bar {
+  display: flex; gap: 4px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 4px;
+}
+.tab-btn {
+  font-size: 13px; padding: 7px 16px; border-radius: 7px;
+  border: none; background: transparent;
+  color: #555550; font-weight: 600;
+  cursor: pointer; font-family: var(--font); transition: all .15s; white-space: nowrap;
+}
+.tab-btn.active { background: #2c2c2a; color: #fff; font-weight: 700; }
+.tab-btn:not(.active):hover { background: var(--surface2); color: #1a1a18; }
+.tab-divider { width: 1px; height: 48px; background: var(--border); align-self: flex-end; margin-bottom: 4px; }
+
+/* ── 기간 선택 바 ───────────────────────────────── */
+.period-bar { display: flex; gap: 4px; margin-bottom: 20px; flex-wrap: wrap; }
+.period-btn {
+  font-size: 12px; padding: 5px 14px; border-radius: 6px;
+  border: 1px solid var(--border); background: var(--surface);
+  color: var(--muted); cursor: pointer; font-family: var(--font); transition: all .15s;
+}
+.period-btn.active     { background: var(--orange); border-color: var(--orange); color: #fff; font-weight: 600; }
+.period-btn.active-new { background: var(--blue);   border-color: var(--blue);   color: #fff; font-weight: 600; }
+.period-btn:not(.active):not(.active-new):hover { background: var(--surface2); color: var(--text); }
+
+/* ── 요약 카드 ─────────────────────────────────── */
+.summary-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px; margin-bottom: 24px;
+}
+.card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 14px 16px;
+}
+.card.danger  { background: var(--red-bg);   border-color: #f7c1c1; }
+.card.success { background: var(--green-bg); border-color: #c0dd97; }
+.card.info    { background: var(--blue-bg);  border-color: #b5d4f4; }
+.card.warn    { background: var(--amber-bg); border-color: #fac775; }
+.card-label { font-size: 11px; color: var(--muted); margin-bottom: 6px; font-weight: 500; }
+.card.danger  .card-label { color: var(--red);   }
+.card.success .card-label { color: var(--green); }
+.card.info    .card-label { color: var(--blue);  }
+.card.warn    .card-label { color: var(--amber); }
+.card-value {
+  font-size: 20px; font-weight: 700; font-family: var(--mono);
+  letter-spacing: -0.5px; word-break: break-all;
+}
+.card.danger  .card-value { color: var(--red);   }
+.card.success .card-value { color: var(--green); }
+.card.info    .card-value { color: var(--blue);  }
+.card.warn    .card-value { color: var(--amber); }
+.card-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+/* ── 테이블 섹션 ────────────────────────────────── */
+.table-toolbar {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;
+}
+.section-title { font-size: 13px; font-weight: 700; color: var(--text); }
+.section-sep {
+  margin: 16px 0 8px; padding: 7px 14px;
+  background: #2c2c2a; color: #fff;
+  border-radius: 7px; font-size: 12px; font-weight: 700; letter-spacing: .5px;
+}
+
+/* ── 테이블 ─────────────────────────────────────── */
+.table-wrap {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); overflow: hidden; overflow-x: auto;
+}
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+thead th {
+  background: #2c2c2a; color: #fff; padding: 8px 10px;
+  font-size: 11px; font-weight: 600; text-align: center; white-space: nowrap;
+}
+/* 단일 헤더 행 테이블(현황/재고)용 */
+thead.single-hdr th {
+  text-align: left;
+}
+thead.single-hdr th.num { text-align: right; }
+tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
+tbody tr:hover { background: #f5f3ee; }
+tbody tr:last-child { border-bottom: none; }
+tbody td { padding: 8px 10px; text-align: right; font-family: var(--mono); font-size: 12px; white-space: nowrap; }
+tbody td:first-child { text-align: left; font-family: var(--font); font-weight: 500; padding-left: 14px; }
+/* 합계 / 기타 행 */
+.row-total td { background: #f0ede8; font-weight: 700; }
+.row-total td:first-child { padding-left: 10px; }
+.row-other td { color: var(--muted); }
+/* 값 강조 */
+.cell-zero    { color: #ccc; }
+.cell-success { color: var(--green) !important; }
+.cell-neg     { color: var(--red)   !important; }
+/* 한도초과 강조 */
+.col-exceed-hdr { background: var(--red) !important; color: #fff !important; }
+.cell-exceed {
+  background: #fff0f0 !important; color: var(--red) !important;
+  font-weight: 700 !important;
+  border-left: 2px solid #e24b4a !important; border-right: 2px solid #e24b4a !important;
+}
+
+/* ── 로딩 / 에러 ────────────────────────────────── */
+.loading-wrap { padding: 60px 20px; text-align: center; color: var(--muted); }
+.spinner {
+  width: 24px; height: 24px; border: 2px solid var(--border);
+  border-top-color: var(--text); border-radius: 50%;
+  animation: spin .6s linear infinite; margin: 0 auto 12px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── 푸터 ───────────────────────────────────────── */
+footer {
+  padding: 16px 24px; border-top: 1px solid var(--border);
+  font-size: 11px; color: var(--muted); text-align: center; margin-top: 40px;
+}
+
+/* ── 도움말 패널 ─────────────────────────────────── */
+.help-toggle {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 16px;
+  padding: 9px 14px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); cursor: pointer;
+  font-size: 12px; font-weight: 600; color: var(--muted);
+  transition: all .15s; user-select: none;
+}
+.help-toggle:hover { background: var(--surface2); color: var(--text); }
+.help-toggle .arrow { font-size: 10px; transition: transform .2s; }
+.help-toggle.open   { color: var(--blue); border-color: #b5d4f4; background: var(--blue-bg); }
+.help-toggle.open .arrow { transform: rotate(180deg); }
+
+.help-panel {
+  display: none;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 22px 24px;
+  margin-bottom: 20px; font-size: 13px; line-height: 1.7;
+}
+.help-panel.open { display: block; }
+
+.help-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+@media (max-width: 768px) { .help-grid { grid-template-columns: 1fr; } }
+
+.help-section { }
+.help-section h3 {
+  font-size: 12px; font-weight: 700; color: var(--blue);
+  letter-spacing: .4px; margin-bottom: 10px;
+  padding-bottom: 6px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 6px;
+}
+.help-section p  { color: var(--text); margin-bottom: 6px; }
+.help-section ul { padding-left: 16px; color: var(--text); }
+.help-section ul li { margin-bottom: 4px; }
+
+.help-formula {
+  background: var(--surface2); border-radius: 7px;
+  padding: 12px 16px; margin: 8px 0;
+  font-family: var(--mono); font-size: 12px; line-height: 1.8;
+  border-left: 3px solid var(--blue);
+}
+.help-formula span { color: var(--blue); font-weight: 600; }
+
+.help-notice {
+  background: #fff8ee; border: 1px solid #fac775;
+  border-radius: 7px; padding: 12px 16px; margin-top: 16px;
+  font-size: 12px; color: var(--amber); line-height: 1.7;
+}
+.help-notice strong { color: var(--red); }
+
+.help-badge {
+  display: inline-block; padding: 1px 8px; border-radius: 4px;
+  font-size: 11px; font-weight: 600; font-family: var(--mono);
+}
+.badge-new  { background: #fff0f0; color: var(--red);   border: 1px solid #f7c1c1; }
+.badge-ref  { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }
+.badge-blue { background: var(--blue-bg);  color: var(--blue);  border: 1px solid #b5d4f4; }
+
+.metric-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 8px; }
+.metric-table th {
+  background: var(--surface2); color: var(--muted);
+  padding: 6px 10px; text-align: left; font-weight: 600;
+  border-bottom: 1px solid var(--border); font-size: 11px;
+}
+.metric-table td { padding: 7px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+.metric-table tr:last-child td { border-bottom: none; }
+.metric-name { font-weight: 700; color: var(--text); white-space: nowrap; }
+.metric-exceed { font-weight: 700; color: var(--red); white-space: nowrap; }
+
+/* ── 모바일 ─────────────────────────────────────── */
+@media (max-width: 768px) {
+  .container { padding: 16px; }
+  header { padding: 0 16px; }
+  .tab-bar { overflow-x: auto; }
+}
+
+/* ── 인쇄 ───────────────────────────────────────── */
+@media print {
+  header, .tab-section, .period-bar, .btn, footer { display: none !important; }
+  body { background: #fff !important; color: #000 !important; }
+  .container { padding: 8px !important; max-width: 100% !important; }
+  .table-wrap { overflow: visible !important; }
+  @page { margin: 10mm; }
+
+  /* 카드 크기 조정 */
+  .summary-grid { grid-template-columns: repeat(3,1fr) !important; gap: 6px !important; }
+  .card { padding: 8px !important; border: 1px solid #ccc !important; page-break-inside: avoid; }
+  .card.danger  { background: #fff0f0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .card.success { background: #f0fff4 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .card.info    { background: #eef4ff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .card.warn    { background: #fff8ee !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .card-value   { font-size: 12px !important; line-height: 1.4 !important; }
+  .card-label, .card-sub { font-size: 9px !important; }
+
+  /* 테이블 */
+  table { font-size: 10px !important; }
+  thead th { padding: 5px 6px !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  tbody td { padding: 4px 6px !important; }
+  .row-total td { background: #f0ede8 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .cell-exceed { background: #ffe0e0 !important; color: #a00 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .section-sep { background: #333 !important; color: #fff !important; margin: 8px 0 4px !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo"><div class="logo-dot"></div>오토허브셀카 매출매입 관리</div>
+  <div class="header-right">
+    <span class="update-time" id="updateTime">—</span>
+    <button class="btn" onclick="printPage()">🖨 인쇄</button>
+    <button class="btn" id="btnRefresh" onclick="loadData()">↻ 새로고침</button>
+  </div>
+</header>
+
+<div class="container">
+  <!-- 탭 섹션 -->
+  <div class="tab-section">
+    <div class="tab-group">
+      <div class="tab-group-label">부가세 관리</div>
+      <div class="tab-bar">
+        <button class="tab-btn active" onclick="selectTab('total')">전사</button>
+        <button class="tab-btn" onclick="selectTab('auction')">AUCTION</button>
+        <button class="tab-btn" onclick="selectTab('chulpum')">출품영업팀</button>
+        <button class="tab-btn" onclick="selectTab('beopin')">법인영업팀</button>
+        <button class="tab-btn" onclick="selectTab('maepan')">매입판매팀</button>
+      </div>
+    </div>
+    <div class="tab-divider"></div>
+    <div class="tab-group">
+      <div class="tab-group-label">현황</div>
+      <div class="tab-bar">
+        <button class="tab-btn" onclick="selectTab('sales_status')">매출현황</button>
+        <button class="tab-btn" onclick="selectTab('auction_status')">경매현황</button>
+      </div>
+    </div>
+    <div class="tab-divider"></div>
+    <div class="tab-group">
+      <div class="tab-group-label">재고</div>
+      <div class="tab-bar">
+        <button class="tab-btn" onclick="selectTab('inventory')">재고 현황</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 도움말 패널 -->
+  <div class="help-toggle" id="helpToggle" onclick="toggleHelp()">
+    <span>💡 의제매입 부가세 한도 관리 — 이 화면을 어떻게 읽나요?</span>
+    <span class="arrow" id="helpArrow">▼</span>
+  </div>
+  <div class="help-panel" id="helpPanel">
+
+    <div class="help-grid">
+
+      <!-- 왼쪽: 의제매입 이란 -->
+      <div class="help-section">
+        <h3>📌 의제매입세액 공제란?</h3>
+        <p>중고차를 매입할 때 세금계산서 없이 산 차량(미발행·비사업용·계산서)도,
+           일정 <strong>한도 내에서</strong> 부가세를 공제받을 수 있는 제도예요.</p>
+        <ul>
+          <li><strong>발행</strong> — 세금계산서 수취 매입 → 전액 공제 가능</li>
+          <li><strong>미발행·비사업용·계산서</strong> — 의제매입 → 한도 내 공제</li>
+          <li><strong>불공제</strong> — 공제 불가</li>
+        </ul>
+        <div class="help-formula">
+          공제세액 = <span>MIN(의제매입액, 한도)</span> × 10/110<br>
+          초과불공제세액 = <span>MAX(의제매입액 − 한도, 0)</span> × 10/110
+        </div>
+      </div>
+
+      <!-- 오른쪽: 한도 계산 -->
+      <div class="help-section">
+        <h3>📊 한도 계산 방법</h3>
+        <p>한도는 <strong>매출액에서 세금계산서 매입액을 뺀 금액</strong>이에요.</p>
+        <div class="help-formula">
+          의제매입 한도 = <span>매출액(공급가)</span> − <span>세금계산서매입액</span>
+        </div>
+        <p style="margin-top:8px">예시) 매출 10억, 세계매입 7억이면<br>
+          한도 = 3억 → 의제매입이 3억 이하면 전액 공제<br>
+          의제매입이 4억이면 1억은 <span style="color:var(--red);font-weight:600">초과 → 불공제</span>
+        </p>
+      </div>
+
+      <!-- 왼쪽: 기간 적용 기준 -->
+      <div class="help-section">
+        <h3>📅 기간별 적용 기준</h3>
+        <table class="metric-table">
+          <tr>
+            <th>기간</th><th>적용</th><th>의미</th>
+          </tr>
+          <tr>
+            <td>1분기 (1~3월)</td>
+            <td><span class="help-badge badge-ref">참고용</span></td>
+            <td style="color:var(--muted)">한도 제한 없음</td>
+          </tr>
+          <tr>
+            <td>2분기 (4~6월)</td>
+            <td><span class="help-badge badge-ref">참고용</span></td>
+            <td style="color:var(--muted)">한도 제한 없음</td>
+          </tr>
+          <tr>
+            <td>상반기 (1~6월)</td>
+            <td><span class="help-badge badge-ref">참고용</span></td>
+            <td style="color:var(--muted)">누계 참고</td>
+          </tr>
+          <tr>
+            <td>3분기 ★ (7~9월)</td>
+            <td><span class="help-badge badge-new">한도 적용</span></td>
+            <td>초과분 불공제</td>
+          </tr>
+          <tr>
+            <td>4분기 ★ (10~12월)</td>
+            <td><span class="help-badge badge-new">한도 적용</span></td>
+            <td>초과분 불공제</td>
+          </tr>
+          <tr>
+            <td>하반기 ★ (7~12월)</td>
+            <td><span class="help-badge badge-new">한도 적용</span></td>
+            <td>가장 중요한 누계</td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- 오른쪽: 지표 설명 -->
+      <div class="help-section">
+        <h3>🔢 각 지표 설명</h3>
+        <table class="metric-table">
+          <tr><th>지표</th><th>의미</th></tr>
+          <tr><td class="metric-name">매출</td><td>판매 완료된 차량의 공급가 합계</td></tr>
+          <tr><td class="metric-name">세계매입</td><td>세금계산서 수취 매입액 (발행)</td></tr>
+          <tr><td class="metric-name">의제매입</td><td>세금계산서 없는 매입액 (미발행 등)</td></tr>
+          <tr><td class="metric-name">한도</td><td>매출 − 세계매입 (공제 가능 상한선)</td></tr>
+          <tr><td class="metric-name">초과</td><td>의제매입이 한도를 넘은 금액</td></tr>
+          <tr><td class="metric-exceed">초과불공제세액</td><td>초과분에 대해 공제 못 받는 세액</td></tr>
+          <tr><td class="metric-name" style="color:var(--green)">공제세액</td><td>실제 공제받는 부가세액 (×10/110)</td></tr>
+        </table>
+      </div>
+
+    </div><!-- /help-grid -->
+
+    <!-- 핵심 주의사항 -->
+    <div class="help-notice">
+      <strong>⚠️ 중요: 팀별·거래처별 한도는 관리 목적의 참고 수치입니다</strong><br><br>
+      이 화면에서 보이는 팀별·거래처별 한도와 소진율은 <strong>업무 관리를 위해 팀 매출을 기준으로 계산한 수치</strong>예요.<br><br>
+      <strong style="color:var(--amber)">실제 세법상 의제매입 한도는 과세기간(반기) 기준, 회사 전체 매출액으로 계산합니다.</strong><br>
+      즉, 개별 팀이나 거래처에 한도가 배분되는 것이 아니라,
+      <strong>회사 전체의 반기 매출 − 전체 세금계산서 매입액</strong>이 진짜 한도예요.<br><br>
+      → 팀별 한도가 초과로 표시되더라도 전사 기준으로는 한도 내일 수 있고, 반대로 팀별로는 여유가 있어도 전사 합산으로 초과될 수 있어요.<br>
+      → <strong>최종 판단은 반드시 <span style="text-decoration:underline">전사 탭의 하반기 수치</span>와 담당 세무사 확인을 기준으로 하세요.</strong>
+    </div>
+
+  </div><!-- /help-panel -->
+
+  <div id="mainContent">
+    <div class="loading-wrap"><div class="spinner"></div><div>데이터 로딩 중...</div></div>
+  </div>
+</div>
+
+<footer>오토허브셀카 · 매출매입 관리 · 2026</footer>
+
+<script>
+'use strict';
+
+// ── 설정 ─────────────────────────────────────────
+const APPS_URL = 'https://script.google.com/macros/s/AKfycbxMIMx7lXVZzkmZIYZujiPUMIHf8Vxuhy4Sp6ZF-gAXqCx46U7gU5yYXfw335RITHRvsw/exec';
+
+// 기간 정의
+const PERIODS = [
+  { key:'1q',  label:'1분기',    months:[1,2,3],          isNew:false },
+  { key:'2q',  label:'2분기',    months:[4,5,6],          isNew:false },
+  { key:'1h',  label:'상반기',   months:[1,2,3,4,5,6],    isNew:false },
+  { key:'3q',  label:'3분기 ★', months:[7,8,9],          isNew:true  },
+  { key:'4q',  label:'4분기 ★', months:[10,11,12],       isNew:true  },
+  { key:'2h',  label:'하반기 ★',months:[7,8,9,10,11,12], isNew:true  },
+];
+
+// 부가세 팀 탭 정보
+const TEAM_TABS = {
+  auction: { dataKey:'vat_auction', label:'AUCTION'   },
+  chulpum: { dataKey:'vat_chulpum', label:'출품영업팀' },
+  beopin:  { dataKey:'vat_beopin',  label:'법인영업팀' },
+  maepan:  { dataKey:'vat_maepan',  label:'매입판매팀' },
+};
+
+// 7지표
+const METRICS = ['매출','세계매입','의제매입','한도','초과','초과불공제세액','공제세액'];
+const N = METRICS.length;
+
+// 앱 상태
+const state = { tab:'total', period:'1h', data:null };
+
+// ── 유틸 ─────────────────────────────────────────
+/** 숫자 → 천단위 콤마 (0이거나 빈값이면 '-' 반환) */
+function fmtN(v) {
+  const n = (typeof v === 'number') ? v : parseFloat(String(v||'').replace(/,/g,''));
+  if (isNaN(n) || n === 0) return '<span class="cell-zero">-</span>';
+  return n.toLocaleString('ko-KR');
+}
+
+/** 값 → 숫자 (파싱 실패 시 0) */
+function toNum(v) {
+  if (typeof v === 'number') return v;
+  return parseFloat(String(v||'').replace(/,/g,'')) || 0;
+}
+
+/** 한도초과 여부에 따른 셀 클래스 */
+function exceedClass(n, metric) {
+  if ((metric === '초과' || metric === '초과불공제세액') && n > 0) return 'cell-exceed';
+  if (metric === '공제세액' && n > 0) return 'cell-success';
+  return '';
+}
+
+// ── JSONP 데이터 로드 ─────────────────────────────
+function fetchJSONP(url) {
+  return new Promise((resolve, reject) => {
+    const cb = '_cb' + Date.now();
+    const s  = document.createElement('script');
+    const tm = setTimeout(() => { cleanup(); reject(new Error('타임아웃')); }, 30000);
+    function cleanup() { clearTimeout(tm); delete window[cb]; s.remove(); }
+    window[cb] = data => { cleanup(); resolve(data); };
+    s.onerror  = ()   => { cleanup(); reject(new Error('네트워크 오류')); };
+    s.src = `${url}?action=getData&callback=${cb}`;
+    document.head.appendChild(s);
+  });
+}
+
+// ── 도움말 토글 ──────────────────────────────────
+function toggleHelp() {
+  const panel  = document.getElementById('helpPanel');
+  const toggle = document.getElementById('helpToggle');
+  const open   = panel.classList.toggle('open');
+  toggle.classList.toggle('open', open);
+}
+
+async function loadData() {
+  const btn = document.getElementById('btnRefresh');
+  btn.classList.add('loading'); btn.textContent = '로딩 중...';
+  document.getElementById('mainContent').innerHTML =
+    '<div class="loading-wrap"><div class="spinner"></div><div>데이터 로딩 중...</div></div>';
+  try {
+    const resp = await fetchJSONP(APPS_URL);
+    if (!resp.ok) throw new Error(resp.msg || '서버 오류');
+    state.data = resp;
+    document.getElementById('updateTime').textContent = '업데이트: ' + (resp.updated || '—');
+    renderTab();
+  } catch(e) {
+    document.getElementById('mainContent').innerHTML =
+      `<div class="loading-wrap"><div style="color:var(--red)">로드 실패: ${e.message}</div></div>`;
+  } finally {
+    btn.classList.remove('loading'); btn.textContent = '↻ 새로고침';
+  }
+}
+
+// ── 탭 / 기간 선택 ───────────────────────────────
+function selectTab(tab) {
+  state.tab = tab;
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    const m = b.getAttribute('onclick')?.match(/selectTab\('(\w+)'\)/);
+    b.classList.toggle('active', !!(m && m[1] === tab));
+  });
+  renderTab();
+}
+
+function selectPeriod(key) {
+  state.period = key;
+  renderTab();
+}
+
+function renderTab() {
+  if (!state.data) return;
+  const { tab } = state;
+  if (tab === 'total')          renderTotal();
+  else if (tab in TEAM_TABS)    renderTeamTab(tab);
+  else if (tab === 'sales_status')   renderStatusTab('sales_status',  '매출현황');
+  else if (tab === 'auction_status') renderStatusTab('auction_status','경매현황');
+  else if (tab === 'inventory') renderInventory();
+}
+
+// ── 공통 UI 조각 ─────────────────────────────────
+function renderPeriodBar() {
+  return `<div class="period-bar">` +
+    PERIODS.map(p => {
+      const active = state.period === p.key;
+      const cls = active ? (p.isNew ? 'period-btn active-new' : 'period-btn active') : 'period-btn';
+      return `<button class="${cls}" onclick="selectPeriod('${p.key}')">${p.label}</button>`;
+    }).join('') + `</div>`;
+}
+
+function renderSummaryCards(sal, tax, dep, lim, exc, non, vat, periodLabel) {
+  return `<div class="summary-grid">
+    <div class="card info"><div class="card-label">매출액</div><div class="card-value">${fmtN(sal)}</div><div class="card-sub">${periodLabel} 합계</div></div>
+    <div class="card"><div class="card-label">세금계산서 매입</div><div class="card-value">${fmtN(tax)}</div><div class="card-sub">${periodLabel}</div></div>
+    <div class="card warn"><div class="card-label">의제매입 한도</div><div class="card-value">${fmtN(lim)}</div><div class="card-sub">매출 - 세계매입</div></div>
+    <div class="card"><div class="card-label">의제매입액</div><div class="card-value">${fmtN(dep)}</div><div class="card-sub">${periodLabel}</div></div>
+    ${exc > 0
+      ? `<div class="card danger"><div class="card-label">한도 초과</div><div class="card-value">${fmtN(exc)}</div><div class="card-sub">불공제세액 ${fmtN(non)}</div></div>`
+      : `<div class="card success"><div class="card-label">한도 초과</div><div class="card-value">없음</div><div class="card-sub">한도 내 운영</div></div>`}
+    <div class="card success"><div class="card-label">공제세액</div><div class="card-value">${fmtN(vat)}</div><div class="card-sub">×10/110</div></div>
+  </div>`;
+}
+
+const TABLE_HDR = `<div class="table-wrap"><table><thead><tr>
+  <th style="text-align:left;min-width:120px">구분</th>
+  <th>매출액</th><th>세금계산서매입</th><th>의제매입액</th>
+  <th>의제매입한도</th><th>공제가능액</th>
+  <th class="col-exceed-hdr">한도초과액</th>
+  <th class="col-exceed-hdr">초과불공제세액</th>
+  <th>의제매입공제세액</th><th>비고</th>
+</tr></thead><tbody>`;
+
+function makeVatRow(row) {
+  const label = String(row[0]||'');
+  if (!label) return '';
+  const isTotal = label.includes('연간');
+  const isNew   = /[3-4]분기|하반기|0[7-9]월|1[0-2]월/.test(label);
+  const exc     = toNum(row[6]);
+  return `<tr class="${isTotal ? 'row-total' : ''}">
+    <td style="${isNew ? 'color:var(--red);font-weight:600' : ''}">${label}</td>
+    <td>${fmtN(row[1])}</td><td>${fmtN(row[2])}</td><td>${fmtN(row[3])}</td>
+    <td>${fmtN(row[4])}</td><td class="cell-success">${fmtN(row[5])}</td>
+    <td class="${exc > 0 ? 'cell-exceed' : ''}">${fmtN(row[6])}</td>
+    <td class="${exc > 0 ? 'cell-exceed' : ''}">${fmtN(row[7])}</td>
+    <td class="cell-success">${fmtN(row[8])}</td>
+    <td style="font-family:var(--font);color:var(--muted);font-size:11px">${row[9]||''}</td>
+  </tr>`;
+}
+
+// ── 전사 탭 ──────────────────────────────────────
+function renderTotal() {
+  const rows = state.data.vat_total || [];
+  if (!rows.length) { showEmpty(); return; }
+
+  const yr   = rows[1] ? rows[1][1] : '';
+  const note = rows[2] ? String(rows[2][0]||'') : '';
+  const annRow = rows.find(r => String(r[0]||'').includes('연간'));
+
+  const allData    = rows.slice(1);
+  const monthRows  = allData.filter(r => /^[0-9]{2}월$/.test(String(r[0]||'').trim()));
+  const qRows      = allData.filter(r => /분기/.test(String(r[0]||'')));
+  const hRows      = allData.filter(r => /반기/.test(String(r[0]||'')));
+
+  let html = '';
+
+  // 연간 요약 카드
+  if (annRow) {
+    html += renderSummaryCards(
+      toNum(annRow[1]), toNum(annRow[2]), toNum(annRow[3]),
+      toNum(annRow[4]), toNum(annRow[6]), toNum(annRow[7]), toNum(annRow[8]), '연간'
+    );
+  }
+
+  // 제목 + 기준연도/주석 인라인
+  html += `<div class="table-toolbar">
+    <span class="section-title" style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+      전사 의제매입 한도 현황
+      <span style="font-size:12px;font-weight:400;color:var(--muted)">기준연도 <strong style="color:var(--blue)">${yr}</strong></span>
+      <span style="font-size:11px;color:var(--red)">${note}</span>
+    </span>
+    <button class="btn btn-blue" onclick="downloadCSV('total')">↓ 엑셀 다운로드</button>
+  </div>`;
+
+  html += `<div class="section-sep">📅 월별 현황</div>`;
+  html += TABLE_HDR + monthRows.map(makeVatRow).join('') + '</tbody></table></div>';
+
+  html += `<div class="section-sep" style="margin-top:16px">📊 분기별 누계</div>`;
+  html += TABLE_HDR + qRows.map(makeVatRow).join('') + '</tbody></table></div>';
+
+  html += `<div class="section-sep" style="margin-top:16px">📆 반기별 누계</div>`;
+  html += TABLE_HDR + hRows.map(makeVatRow).join('') + '</tbody></table></div>';
+
+  if (annRow) {
+    html += `<div class="section-sep" style="margin-top:16px;background:#1a3a5c">🗓 연간 합계</div>`;
+    html += TABLE_HDR + makeVatRow(annRow) + '</tbody></table></div>';
+  }
+
+  document.getElementById('mainContent').innerHTML = html;
+}
+
+// ── 팀별 탭 ──────────────────────────────────────
+function renderTeamTab(tabKey) {
+  const info = TEAM_TABS[tabKey];
+  const rawRows = state.data[info.dataKey] || [];
+  if (!rawRows.length) { showEmpty(); return; }
+
+  // 스프레드시트가 상반기/하반기 두 블록으로 나뉘어 있으므로 병합
+  const SKIP = new Set(['거래처','매출','세계매입','의제매입','한도','초과','초과불공제세액','공제세액',
+    '1분기','2분기','3분기★','4분기★','상반기','하반기★','기준연도']);
+
+  function isDataRow(row) {
+    const a = String(row[0]||'').trim();
+    return a && !SKIP.has(a) && !a.startsWith('※') && !a.startsWith('부가세') && !a.startsWith('기준연도');
+  }
+
+  // 블록1(1Q/2Q/상반기), 블록2(3Q/4Q/하반기) 분리
+  let block1 = [], block2 = [], block1Done = false, inBlock1 = false;
+  rawRows.forEach((row, i) => {
+    if (i < 3) return;
+    const a = String(row[0]||'').trim();
+    const isHdr = /분기|반기/.test(a) && SKIP.has(a);
+    if (!block1Done) {
+      if (isDataRow(row)) { inBlock1 = true; block1.push(row); }
+      else if (inBlock1 && (a === '' || isHdr)) block1Done = true;
+    } else {
+      if (isDataRow(row)) block2.push(row);
+    }
+  });
+
+  // 두 블록 병합 (행 수가 같을 때만)
+  const hasTwoBlocks = block2.length > 0 && block2.length === block1.length;
+  const merged = block1.map((r1, i) => {
+    if (!hasTwoBlocks) return r1;
+    const r2 = block2[i];
+    return [r1[0], ...r1.slice(1,22), ...r2.slice(1,22)];
+  });
+
+  // 기간 인덱스 → 컬럼 시작점
+  const periodIdx = PERIODS.findIndex(p => p.key === state.period);
+  const period    = PERIODS[periodIdx] || PERIODS[2];
+  const startCol  = 1 + periodIdx * N;
+
+  // 팀합계 행으로 요약 카드
+  const totalRow = merged.find(r => String(r[0]||'').includes('합계'));
+  let html = renderPeriodBar();
+  if (totalRow) {
+    html += renderSummaryCards(
+      toNum(totalRow[startCol]),   toNum(totalRow[startCol+1]),
+      toNum(totalRow[startCol+2]), toNum(totalRow[startCol+3]),
+      toNum(totalRow[startCol+4]), toNum(totalRow[startCol+5]),
+      toNum(totalRow[startCol+6]), period.label
+    );
+  }
+
+  html += `<div class="table-toolbar">
+    <span class="section-title">${info.label} — ${period.label} 거래처별 현황</span>
+    <button class="btn btn-blue" onclick="downloadCSV('${tabKey}')">↓ 엑셀 다운로드</button>
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr>
+      <th style="text-align:left;min-width:160px">거래처</th>
+      ${METRICS.map(m => `<th class="${m==='초과'||m==='초과불공제세액'?'col-exceed-hdr':''}">${m}</th>`).join('')}
+    </tr></thead><tbody>`;
+
+  merged.forEach(row => {
+    const label = String(row[0]||'').trim();
+    if (!label || label.startsWith('※')) return;
+    const isTotal = label.includes('합계');
+    const isOther = label === '기타';
+    html += `<tr class="${isTotal?'row-total':isOther?'row-other':''}">`;
+    html += `<td style="${!isTotal&&!isOther?'padding-left:20px':''}">${label}</td>`;
+    for (let i = 0; i < N; i++) {
+      const val = row[startCol + i];
+      const n   = toNum(val);
+      html += `<td class="${exceedClass(n, METRICS[i])}">${fmtN(val)}</td>`;
+    }
+    html += '</tr>';
+  });
+
+  html += '</tbody></table></div>';
+  document.getElementById('mainContent').innerHTML = html;
+}
+
+// ── 현황 탭 (매출현황 / 경매현황) ────────────────
+function renderStatusTab(dataKey, title) {
+  const rows = state.data[dataKey] || [];
+  if (!rows.length) { showEmpty(); return; }
+
+  // 헤더 행: 매출현황=rows[3] B열부터 팀, 경매현황=rows[3] A열부터 팀
+  // 월 레이블: 매출현황 D~P(index 3~15), 경매현황 C~O(index 2~14)
+  const isSales   = dataKey === 'sales_status';
+  const hdrRow    = rows[3] || [];
+  const colStart  = isSales ? 3 : 2;   // 데이터 시작 열 인덱스
+  const months    = hdrRow.slice(colStart, colStart + 13);
+  const teamCol   = isSales ? 1 : 0;   // 팀명이 있는 열
+
+  // 전체 팀 표시: 매출현황=B열, 경매현황=A열 기준으로 팀명 감지
+  const SHOW_TEAMS = isSales
+    ? ['전사','AUCTION','출품영업팀','법인영업팀','매입판매팀']
+    : ['전체','AUCTION','출품영업팀','법인영업팀','매입판매팀'];
+  const TEAM_COLOR = {
+    '전사':'var(--text)', '전체':'var(--text)',
+    'AUCTION':'var(--amber)', '출품영업팀':'var(--muted)',
+    '법인영업팀':'var(--blue)', '매입판매팀':'var(--green)',
+  };
+
+  const teamBlocks = [];
+  let cur = null;
+  rows.forEach((row, i) => {
+    if (i < 4) return;
+    const teamName = String(row[teamCol]||'').trim();
+    if (SHOW_TEAMS.includes(teamName)) {
+      cur = { team: teamName, rows: [row] };
+      teamBlocks.push(cur);
+    } else if (cur) {
+      const nextTeam = String(row[teamCol]||'').trim();
+      if (nextTeam && !SHOW_TEAMS.includes(nextTeam) && nextTeam !== '') {
+        cur = null;
+      } else {
+        cur.rows.push(row);
+      }
+    }
+  });
+
+  let html = `<div class="table-toolbar">
+    <span class="section-title">${title} — 전체 / AUCTION / 출품영업팀 / 법인영업팀 / 매입판매팀</span>
+    <button class="btn btn-blue" onclick="downloadCSV('${dataKey}')">↓ 엑셀 다운로드</button>
+  </div>
+  <div class="table-wrap"><table>
+    <thead class="single-hdr"><tr>
+      <th style="min-width:100px">팀</th>
+      <th style="min-width:80px">지표</th>
+      ${months.map((m,i) => `<th class="num" style="${i===months.length-1?'background:#1a1a18':''}">${m||''}</th>`).join('')}
+    </tr></thead><tbody>`;
+
+  teamBlocks.forEach(blk => {
+    const color = TEAM_COLOR[blk.team] || 'var(--text)';
+    const metricCol = isSales ? 2 : 1;
+    blk.rows.forEach((row, ri) => {
+      const metric = String(row[metricCol]||'').trim();
+      if (!metric) return;
+      const isRate = metric.includes('율') || metric.includes('률');
+      html += `<tr${ri===0?' class="row-total"':''}>`;
+      html += ri === 0
+        ? `<td style="color:${color};font-weight:700">${blk.team}</td>`
+        : `<td></td>`;
+      html += `<td style="font-family:var(--font);${isRate?'color:var(--muted);font-size:11px':''}">${metric}</td>`;
+      row.slice(colStart, colStart+13).forEach((v, vi) => {
+        const isLast = vi === 12;
+        let disp;
+        if (isRate) {
+          const raw = String(v||'').replace(/,/g,'');
+          const n   = parseFloat(raw.replace('%',''));
+          disp = (!isNaN(n) && n !== 0)
+            ? (raw.includes('%') ? raw : (n * 100).toFixed(1) + '%')
+            : '<span class="cell-zero">-</span>';
+        } else {
+          const n = toNum(v);
+          if (n === 0) disp = '<span class="cell-zero">-</span>';
+          else if (n < 0) disp = `<span class="cell-neg">(${Math.abs(n).toLocaleString('ko-KR')})</span>`;
+          else disp = n.toLocaleString('ko-KR');
+        }
+        html += `<td style="${isLast?'background:var(--surface2);font-weight:600':''}">${disp}</td>`;
+      });
+      html += '</tr>';
+    });
+    html += `<tr><td colspan="${2+months.length}" style="height:5px;background:var(--surface2)"></td></tr>`;
+  });
+
+  html += '</tbody></table></div>';
+  document.getElementById('mainContent').innerHTML = html;
+}
+
+// ── 재고 탭 ──────────────────────────────────────
+function renderInventory() {
+  const rawRows = state.data.db_inventory || [];
+  if (!rawRows.length) { showEmpty('재고 데이터 없음'); return; }
+
+  const toN = v => typeof v === 'number' ? v : (parseFloat(String(v||'').replace(/,/g,''))||0);
+  const fmt = n => toN(n).toLocaleString('ko-KR');
+
+  // G열(index 6) 태그: detail / subtotal / total
+  let groups = [], cur = null, grand = null, meta = '';
+
+  rawRows.forEach(row => {
+    const tag  = String(row[6]||'').trim().toLowerCase();
+    const dept = String(row[0]||'').trim();
+    const b    = String(row[1]||'').trim();
+    const nums = { cnt:toN(row[2]), amt:toN(row[3]), cost:toN(row[4]), total:toN(row[5]) };
+
+    if (!tag && dept.includes('기준일')) { meta = dept + (b ? ' | ' + b : ''); return; }
+    if (!tag) return;
+
+    if (tag === 'total') {
+      grand = nums;
+    } else if (tag === 'subtotal') {
+      if (!cur) cur = { dept:'', details:[] };
+      cur.dept = dept || cur.dept;
+      cur.sub  = nums;
+      groups.push(cur); cur = null;
+    } else if (tag === 'detail') {
+      if (nums.total === 0) return;
+      if (!cur) cur = { dept:'', details:[] };
+      cur.details.push({ owner:b, ...nums });
+    }
+  });
+
+  if (!grand) grand = {
+    cnt:  groups.reduce((s,g)=>s+g.sub.cnt,  0),
+    amt:  groups.reduce((s,g)=>s+g.sub.amt,  0),
+    cost: groups.reduce((s,g)=>s+g.sub.cost, 0),
+    total:groups.reduce((s,g)=>s+g.sub.total,0),
+  };
+
+  let html = `<div class="table-toolbar">
+    <span class="section-title">📦 재고 현황 <span style="font-size:11px;color:var(--muted);font-weight:400">${meta}</span></span>
+    <button class="btn btn-blue" onclick="downloadCSV('inventory')">↓ 엑셀 다운로드</button>
+  </div>
+  <div class="table-wrap"><table>
+    <thead>
+      <tr>
+        <th style="text-align:left;min-width:130px">매입담당부서</th>
+        <th style="text-align:left;min-width:160px">소유구분</th>
+        <th>대수</th><th>매입가(공급가)</th><th>총부대비(공급가)</th><th>합계(공급가)</th>
+      </tr>
+      <tr class="row-total" style="background:#1e40af">
+        <td colspan="2" style="background:#1e40af;color:#fff;font-size:14px">총합계</td>
+        <td style="background:#1e40af;color:#fff">${fmt(grand.cnt)}</td>
+        <td style="background:#1e40af;color:#fff">${fmt(grand.amt)}</td>
+        <td style="background:#1e40af;color:#fff">${fmt(grand.cost)}</td>
+        <td style="background:#1e40af;color:#fff">${fmt(grand.total)}</td>
+      </tr>
+    </thead><tbody>`;
+
+  groups.forEach((g, gi) => {
+    if (gi > 0) html += `<tr><td colspan="6" style="height:4px;background:var(--surface2);border:none"></td></tr>`;
+    g.details.forEach((d, i) => {
+      const isFirst = i === 0;
+      html += `<tr style="background:${isFirst?'#eff6ff':'var(--surface)'};border-bottom:1px solid var(--border)">
+        <td style="font-weight:${isFirst?700:400};color:${isFirst?'var(--blue)':'var(--text)'};font-family:var(--font)">${isFirst?g.dept:''}</td>
+        <td style="padding-left:20px;font-family:var(--font);color:var(--text)">${d.owner}</td>
+        <td>${fmt(d.cnt)}</td><td>${fmt(d.amt)}</td><td>${fmt(d.cost)}</td><td>${fmt(d.total)}</td>
+      </tr>`;
+    });
+    html += `<tr style="background:#dbeafe;border-top:1px solid #93c5fd;border-bottom:2px solid #93c5fd">
+      <td colspan="2" style="font-weight:700;color:var(--blue);font-family:var(--font)">${g.dept} 합계</td>
+      <td style="font-weight:700;color:var(--blue)">${fmt(g.sub.cnt)}</td>
+      <td style="font-weight:700;color:var(--blue)">${fmt(g.sub.amt)}</td>
+      <td style="font-weight:700;color:var(--blue)">${fmt(g.sub.cost)}</td>
+      <td style="font-weight:700;color:var(--blue)">${fmt(g.sub.total)}</td>
+    </tr>`;
+  });
+
+  html += '</tbody></table></div>';
+  document.getElementById('mainContent').innerHTML = html;
+}
+
+// ── CSV / 엑셀 다운로드 ───────────────────────────
+function downloadCSV(tabKey) {
+  const keyMap = {
+    total:'vat_total', auction:'vat_auction', chulpum:'vat_chulpum',
+    beopin:'vat_beopin', maepan:'vat_maepan',
+    sales_status:'sales_status', auction_status:'auction_status',
+    inventory:'db_inventory',
+  };
+  const rows = state.data[keyMap[tabKey]] || [];
+  const labelMap = {
+    total:'전사', auction:'AUCTION', chulpum:'출품영업팀',
+    beopin:'법인영업팀', maepan:'매입판매팀',
+    sales_status:'매출현황', auction_status:'경매현황', inventory:'재고',
+  };
+
+  const csv = '\uFEFF' + rows.map(row =>
+    row.map(cell => {
+      const s = String(cell == null ? '' : cell);
+      return (s.includes(',') || s.includes('"') || s.includes('\n'))
+        ? '"' + s.replace(/"/g, '""') + '"' : s;
+    }).join(',')
+  ).join('\n');
+
+  const a = document.createElement('a');
+  a.href     = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = `${labelMap[tabKey]||tabKey}_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+}
+
+// ── 인쇄 ─────────────────────────────────────────
+function printPage() {
+  const landscapeTabs = ['sales_status','auction_status'];
+  const existing = document.getElementById('_printStyle');
+  if (existing) existing.remove();
+  const style = document.createElement('style');
+  style.id = '_printStyle';
+  style.textContent = landscapeTabs.includes(state.tab)
+    ? '@page{size:A4 landscape;margin:8mm} .summary-grid{grid-template-columns:repeat(6,1fr)!important}'
+    : '@page{size:A4 portrait;margin:10mm}';
+  document.head.appendChild(style);
+  window.print();
+}
+
+// ── 기타 ─────────────────────────────────────────
+function showEmpty(msg = '데이터 없음') {
+  document.getElementById('mainContent').innerHTML =
+    `<div class="loading-wrap">${msg}</div>`;
+}
+
+// 초기 로드
+loadData();
+</script>
+</body>
+</html>
