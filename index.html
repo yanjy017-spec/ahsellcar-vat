@@ -174,6 +174,92 @@ tbody td:first-child { text-align: left; font-family: var(--font); font-weight: 
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* ── 푸터 ───────────────────────────────────────── */
+
+/* ── Q&A ────────────────────────────────────────── */
+.qna-wrap { max-width: 860px; margin: 0 auto; }
+
+/* 질문 입력 폼 */
+.qna-form {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 20px 22px; margin-bottom: 24px;
+}
+.qna-form h3 { font-size: 14px; font-weight: 700; margin-bottom: 14px; }
+.qna-fields { display: grid; grid-template-columns: 180px 1fr; gap: 10px; margin-bottom: 10px; }
+@media (max-width: 600px) { .qna-fields { grid-template-columns: 1fr; } }
+.qna-input {
+  width: 100%; padding: 9px 12px; border-radius: 7px;
+  border: 1px solid var(--border); background: var(--bg);
+  color: var(--text); font-family: var(--font); font-size: 13px;
+  outline: none; transition: border-color .15s;
+}
+.qna-input:focus { border-color: var(--blue); }
+.qna-textarea {
+  width: 100%; padding: 9px 12px; border-radius: 7px;
+  border: 1px solid var(--border); background: var(--bg);
+  color: var(--text); font-family: var(--font); font-size: 13px;
+  outline: none; resize: vertical; min-height: 80px;
+  transition: border-color .15s;
+}
+.qna-textarea:focus { border-color: var(--blue); }
+.qna-submit {
+  padding: 9px 22px; border-radius: 7px; border: none;
+  background: var(--blue); color: #fff;
+  font-family: var(--font); font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: opacity .15s; float: right;
+}
+.qna-submit:hover { opacity: .85; }
+.qna-submit:disabled { opacity: .5; cursor: wait; }
+
+/* 질문 카드 */
+.qna-list { display: flex; flex-direction: column; gap: 14px; }
+.qna-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); overflow: hidden;
+}
+.qna-q {
+  padding: 16px 20px;
+  border-left: 3px solid var(--blue);
+}
+.qna-q-header {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 8px;
+}
+.qna-badge-q {
+  font-size: 10px; font-weight: 700; padding: 2px 8px;
+  background: var(--blue-bg); color: var(--blue);
+  border-radius: 4px; flex-shrink: 0;
+}
+.qna-no { font-size: 11px; color: var(--muted); font-family: var(--mono); }
+.qna-author { font-size: 12px; font-weight: 600; color: var(--text); }
+.qna-date { font-size: 11px; color: var(--muted); margin-left: auto; }
+.qna-text { font-size: 13px; color: var(--text); line-height: 1.65; }
+
+.qna-a {
+  padding: 14px 20px;
+  background: var(--green-bg);
+  border-top: 1px solid var(--border);
+  border-left: 3px solid var(--green);
+}
+.qna-a-header {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 6px;
+}
+.qna-badge-a {
+  font-size: 10px; font-weight: 700; padding: 2px 8px;
+  background: var(--green-bg); color: var(--green);
+  border: 1px solid #c0dd97; border-radius: 4px; flex-shrink: 0;
+}
+.qna-a-text { font-size: 13px; color: var(--text); line-height: 1.65; }
+
+.qna-pending {
+  padding: 12px 20px;
+  background: var(--surface2);
+  border-top: 1px solid var(--border);
+  font-size: 12px; color: var(--muted); font-style: italic;
+}
+.qna-empty {
+  padding: 48px 20px; text-align: center;
+  color: var(--muted); font-size: 13px;
+}
+
 footer {
   padding: 16px 24px; border-top: 1px solid var(--border);
   font-size: 11px; color: var(--muted); text-align: center; margin-top: 40px;
@@ -324,6 +410,13 @@ footer {
         <button class="tab-btn" onclick="selectTab('inventory')">재고 현황</button>
       </div>
     </div>
+    <div class="tab-divider"></div>
+    <div class="tab-group">
+      <div class="tab-group-label">소통</div>
+      <div class="tab-bar">
+        <button class="tab-btn" onclick="selectTab('qna')">Q &amp; A</button>
+      </div>
+    </div>
   </div>
 
   <!-- 도움말 패널 -->
@@ -470,7 +563,7 @@ const METRICS = ['매출','세계매입','의제매입','한도','초과','초�
 const N = METRICS.length;
 
 // 앱 상태
-const state = { tab:'total', period:'1h', data:null };
+const state = { tab:'total', period:'1h', data:null, qnaList:[] };
 
 // ── 유틸 ─────────────────────────────────────────
 /** 숫자 → 천단위 콤마 (0이거나 빈값이면 '-' 반환) */
@@ -523,7 +616,8 @@ async function loadData() {
   try {
     const resp = await fetchJSONP(APPS_URL);
     if (!resp.ok) throw new Error(resp.msg || '서버 오류');
-    state.data = resp;
+    state.data    = resp;
+    state.qnaList = resp.qna ? resp.qna.slice(1).reverse() : []; // 헤더 제외, 최신순
     document.getElementById('updateTime').textContent = '업데이트: ' + (resp.updated || '—');
     renderTab();
   } catch(e) {
@@ -557,6 +651,7 @@ function renderTab() {
   else if (tab === 'sales_status')   renderStatusTab('sales_status',  '매출현황');
   else if (tab === 'auction_status') renderStatusTab('auction_status','경매현황');
   else if (tab === 'inventory') renderInventory();
+  else if (tab === 'qna')       renderQnA();
 }
 
 // ── 공통 UI 조각 ─────────────────────────────────
@@ -960,6 +1055,97 @@ function printPage() {
 }
 
 // ── 기타 ─────────────────────────────────────────
+// ── Q&A 렌더 ─────────────────────────────────────
+function renderQnA() {
+  const list = state.qnaList || [];
+
+  let cardsHtml = '';
+  if (!list.length) {
+    cardsHtml = '<div class="qna-empty">아직 등록된 질문이 없어요.<br>궁금한 점을 자유롭게 남겨주세요!</div>';
+  } else {
+    cardsHtml = '<div class="qna-list">' +
+      list.map(row => {
+        // row: [번호, 날짜, 작성자, 질문, 답변, 답변일시]
+        const no     = row[0] || '';
+        const date   = String(row[1] || '').slice(0, 16);
+        const author = row[2] || '익명';
+        const q      = String(row[3] || '').replace(/
+/g, '<br>');
+        const a      = String(row[4] || '').replace(/
+/g, '<br>');
+        const aDate  = String(row[5] || '').slice(0, 16);
+
+        const answerHtml = a
+          ? `<div class="qna-a">
+              <div class="qna-a-header">
+                <span class="qna-badge-a">A 답변</span>
+                <span class="qna-date">${aDate}</span>
+              </div>
+              <div class="qna-a-text">${a}</div>
+            </div>`
+          : `<div class="qna-pending">⏳ 답변 준비 중입니다...</div>`;
+
+        return `<div class="qna-card">
+          <div class="qna-q">
+            <div class="qna-q-header">
+              <span class="qna-badge-q">Q 질문</span>
+              <span class="qna-no">#${no}</span>
+              <span class="qna-author">${author}</span>
+              <span class="qna-date">${date}</span>
+            </div>
+            <div class="qna-text">${q}</div>
+          </div>
+          ${answerHtml}
+        </div>`;
+      }).join('') +
+    '</div>';
+  }
+
+  document.getElementById('mainContent').innerHTML = `
+    <div class="qna-wrap">
+      <div class="qna-form">
+        <h3>💬 질문 남기기</h3>
+        <div class="qna-fields">
+          <input class="qna-input" id="qnaAuthor" placeholder="이름 (선택)" maxlength="20">
+          <textarea class="qna-textarea" id="qnaText" placeholder="궁금한 점을 자유롭게 적어주세요." maxlength="1000"></textarea>
+        </div>
+        <div style="overflow:hidden">
+          <button class="qna-submit" id="qnaSubmitBtn" onclick="submitQnA()">질문 등록</button>
+        </div>
+      </div>
+      ${cardsHtml}
+    </div>`;
+}
+
+// ── Q&A 질문 제출 ─────────────────────────────────
+async function submitQnA() {
+  const author   = (document.getElementById('qnaAuthor')?.value || '').trim();
+  const question = (document.getElementById('qnaText')?.value   || '').trim();
+  if (!question) { alert('질문 내용을 입력해주세요.'); return; }
+
+  const btn = document.getElementById('qnaSubmitBtn');
+  btn.disabled = true; btn.textContent = '등록 중...';
+
+  try {
+    const resp = await fetch(APPS_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action:'saveQnA', author, question }),
+    });
+    const json = await resp.json();
+    if (!json.ok) throw new Error(json.msg);
+
+    // 등록 성공 → 데이터 새로고침
+    btn.textContent = '✅ 등록됨!';
+    setTimeout(async () => {
+      await loadData();
+      selectTab('qna');
+    }, 800);
+  } catch(e) {
+    alert('등록 실패: ' + e.message);
+    btn.disabled = false; btn.textContent = '질문 등록';
+  }
+}
+
 function showEmpty(msg = '데이터 없음') {
   document.getElementById('mainContent').innerHTML =
     `<div class="loading-wrap">${msg}</div>`;
