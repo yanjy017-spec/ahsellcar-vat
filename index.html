@@ -586,18 +586,13 @@ function exceedClass(n, metric) {
   return '';
 }
 
-// ── JSONP 데이터 로드 ─────────────────────────────
+// ── 데이터 로드 (fetch 방식) ──────────────────────
 function fetchJSONP(url) {
-  return new Promise((resolve, reject) => {
-    const cb = '_cb' + Date.now();
-    const s  = document.createElement('script');
-    const tm = setTimeout(() => { cleanup(); reject(new Error('타임아웃')); }, 30000);
-    function cleanup() { clearTimeout(tm); delete window[cb]; s.remove(); }
-    window[cb] = data => { cleanup(); resolve(data); };
-    s.onerror  = ()   => { cleanup(); reject(new Error('네트워크 오류')); };
-    s.src = `${url}?action=getData&callback=${cb}`;
-    document.head.appendChild(s);
-  });
+  return fetch(url + '?action=getData', { redirect: 'follow' })
+    .then(r => {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    });
 }
 
 // ── 도움말 토글 ──────────────────────────────────
@@ -1069,10 +1064,8 @@ function renderQnA() {
         const no     = row[0] || '';
         const date   = String(row[1] || '').slice(0, 16);
         const author = row[2] || '익명';
-        const q      = String(row[3] || '').replace(/
-/g, '<br>');
-        const a      = String(row[4] || '').replace(/
-/g, '<br>');
+        const q      = String(row[3] || '').replace(/\n/g, '<br>');
+        const a      = String(row[4] || '').replace(/\n/g, '<br>');
         const aDate  = String(row[5] || '').slice(0, 16);
 
         const answerHtml = a
