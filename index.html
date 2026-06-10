@@ -690,7 +690,7 @@ function makeVatRow(row) {
   const label = String(row[0]||'');
   if (!label) return '';
   const isTotal = label.includes('연간');
-  const isNew   = /[3-4]분기|하반기|0[7-9]월|1[0-2]월/.test(label);
+  const isNew   = ['3분기','4분기','하반기','07월','08월','09월','10월','11월','12월'].some(k => label.includes(k));
   const exc     = toNum(row[6]);
   return `<tr class="${isTotal ? 'row-total' : ''}">
     <td style="${isNew ? 'color:var(--red);font-weight:600' : ''}">${label}</td>
@@ -713,9 +713,9 @@ function renderTotal() {
   const annRow = rows.find(r => String(r[0]||'').includes('연간'));
 
   const allData    = rows.slice(1);
-  const monthRows  = allData.filter(r => /^[0-9]{2}월$/.test(String(r[0]||'').trim()));
-  const qRows      = allData.filter(r => /분기/.test(String(r[0]||'')));
-  const hRows      = allData.filter(r => /반기/.test(String(r[0]||'')));
+  const monthRows  = allData.filter(r => { const s=String(r[0]||'').trim(); return s.length===3 && s.endsWith('월') && !isNaN(parseInt(s)); });
+  const qRows      = allData.filter(r => String(r[0]||'').includes('분기'));
+  const hRows      = allData.filter(r => String(r[0]||'').includes('반기'));
 
   let html = '';
 
@@ -774,7 +774,7 @@ function renderTeamTab(tabKey) {
   rawRows.forEach((row, i) => {
     if (i < 3) return;
     const a = String(row[0]||'').trim();
-    const isHdr = /분기|반기/.test(a) && SKIP.has(a);
+    const isHdr = (a.includes('분기') || a.includes('반기')) && SKIP.has(a);
     if (!block1Done) {
       if (isDataRow(row)) { inBlock1 = true; block1.push(row); }
       else if (inBlock1 && (a === '' || isHdr)) block1Done = true;
