@@ -1174,10 +1174,10 @@ function renderQnA() {
         const no     = row[0] || '';
         const date   = String(row[1] || '').slice(0, 16);
         const author = row[2] || '익명';
-        const q      = String(row[3] || '').replace(/
-/g, '<br>');
-        const a      = String(row[4] || '').replace(/
-/g, '<br>');
+        const q      = String(row[3] || '').split('
+').join('<br>');
+        const a      = String(row[4] || '').split('
+').join('<br>');
         const aDate  = String(row[5] || '').slice(0, 16);
 
         const answerHtml = a
