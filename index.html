@@ -673,7 +673,7 @@ const state = { tab:'total', period:'1h', data:null, qnaList:[] };
 // ── 유틸 ─────────────────────────────────────────
 /** 숫자 → 천단위 콤마 (0이거나 빈값이면 '-' 반환) */
 function fmtN(v) {
-  const n = (typeof v === 'number') ? v : parseFloat(String(v||'').replace(/,/g,''));
+  const n = (typeof v === 'number') ? v : parseFloat(String(v||'').split(',').join(''));
   if (isNaN(n) || n === 0) return '<span class="cell-zero">-</span>';
   return n.toLocaleString('ko-KR');
 }
@@ -681,7 +681,7 @@ function fmtN(v) {
 /** 값 → 숫자 (파싱 실패 시 0) */
 function toNum(v) {
   if (typeof v === 'number') return v;
-  return parseFloat(String(v||'').replace(/,/g,'')) || 0;
+  return parseFloat(String(v||'').split(',').join('')) || 0;
 }
 
 /** 한도초과 여부에 따른 셀 클래스 */
@@ -1010,7 +1010,7 @@ function renderStatusTab(dataKey, title) {
         const isLast = vi === 12;
         let disp;
         if (isRate) {
-          const raw = String(v||'').replace(/,/g,'');
+          const raw = String(v||'').split(',').join('');
           const n   = parseFloat(raw.replace('%',''));
           disp = (!isNaN(n) && n !== 0)
             ? (raw.includes('%') ? raw : (n * 100).toFixed(1) + '%')
@@ -1037,7 +1037,7 @@ function renderInventory() {
   const rawRows = state.data.db_inventory || [];
   if (!rawRows.length) { showEmpty('재고 데이터 없음'); return; }
 
-  const toN = v => typeof v === 'number' ? v : (parseFloat(String(v||'').replace(/,/g,''))||0);
+  const toN = v => typeof v === 'number' ? v : (parseFloat(String(v||'').split(',').join(''))||0);
   const fmt = n => toN(n).toLocaleString('ko-KR');
 
   // G열(index 6) 태그: detail / subtotal / total
@@ -1135,7 +1135,7 @@ function downloadCSV(tabKey) {
     row.map(cell => {
       const s = String(cell == null ? '' : cell);
       return (s.includes(',') || s.includes('"') || s.includes('\n'))
-        ? '"' + s.replace(/"/g, '""') + '"' : s;
+        ? '"' + s.split('"').join('""') + '"' : s;
     }).join(',')
   ).join('\n');
 
