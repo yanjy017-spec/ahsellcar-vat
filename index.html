@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>오토허브셀카 매출매입 관리</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
@@ -54,6 +54,9 @@ header {
 .btn:hover { background: var(--border); }
 .btn.loading { opacity: .6; cursor: wait; }
 .btn-blue { color: var(--blue); background: var(--surface); }
+@media (max-width: 480px) {
+  .btn-blue { width: 100%; justify-content: center; }
+}
 .btn-blue:hover { background: var(--blue-bg); border-color: #b5d4f4; }
 
 /* ── 컨테이너 ──────────────────────────────────── */
@@ -337,10 +340,112 @@ footer {
 .metric-exceed { font-weight: 700; color: var(--red); white-space: nowrap; }
 
 /* ── 모바일 ─────────────────────────────────────── */
+/* ── 모바일 공통 (768px 이하) ──────────────────── */
 @media (max-width: 768px) {
-  .container { padding: 16px; }
-  header { padding: 0 16px; }
-  .tab-bar { overflow-x: auto; }
+  /* 레이아웃 */
+  .container { padding: 12px; }
+  header { padding: 0 14px; height: 48px; }
+  .logo { font-size: 13px; }
+  .update-time { display: none; }
+  .header-right { gap: 6px; }
+  .btn { font-size: 11px; padding: 5px 10px; }
+
+  /* 탭 섹션 — 가로 스크롤 */
+  .tab-section {
+    gap: 8px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+  .tab-section::-webkit-scrollbar { display: none; }
+  .tab-group-label { font-size: 9px; }
+  .tab-btn { font-size: 12px; padding: 6px 12px; }
+  .tab-divider { height: 36px; }
+
+  /* 기간 선택 바 — 가로 스크롤 */
+  .period-bar {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+    gap: 4px;
+  }
+  .period-bar::-webkit-scrollbar { display: none; }
+  .period-btn { font-size: 11px; padding: 5px 10px; white-space: nowrap; }
+
+  /* 요약 카드 — 2열 */
+  .summary-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .card { padding: 10px 12px; }
+  .card-value { font-size: 16px; }
+  .card-label { font-size: 10px; }
+  .card-sub   { font-size: 10px; }
+
+  /* 섹션 구분 */
+  .section-sep { font-size: 11px; padding: 6px 12px; margin: 12px 0 6px; }
+  .table-toolbar { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .section-title { font-size: 12px; }
+
+  /* 테이블 — 가로 스크롤 */
+  .table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 8px;
+  }
+  table { font-size: 11px; min-width: 500px; }
+  thead th { padding: 7px 8px; font-size: 10px; }
+  tbody td { padding: 6px 8px; }
+  tbody td:first-child { padding-left: 10px; min-width: 100px; }
+
+  /* 도움말 패널 */
+  .help-toggle { font-size: 11px; padding: 8px 12px; }
+  .help-panel { padding: 14px 16px; }
+  .help-grid { grid-template-columns: 1fr; gap: 14px; }
+  .help-section h3 { font-size: 11px; }
+  .help-section p, .help-section ul { font-size: 12px; }
+  .help-formula { font-size: 11px; padding: 10px 12px; }
+  .help-notice { font-size: 11px; padding: 10px 12px; }
+  .metric-table { font-size: 11px; }
+  .metric-table th, .metric-table td { padding: 5px 8px; }
+
+  /* Q&A */
+  .qna-form { padding: 14px 16px; }
+  .qna-fields { grid-template-columns: 1fr; gap: 8px; }
+  .qna-text   { font-size: 12px; }
+  .qna-q, .qna-a { padding: 12px 14px; }
+  .qna-q-header { flex-wrap: wrap; gap: 6px; }
+  .qna-date { margin-left: 0; }
+}
+
+/* ── 소형 모바일 (480px 이하) ──────────────────── */
+@media (max-width: 480px) {
+  header { height: 44px; }
+  .logo { font-size: 12px; }
+  .logo-dot { width: 6px; height: 6px; }
+
+  /* 탭 더 작게 */
+  .tab-btn { font-size: 11px; padding: 5px 10px; }
+
+  /* 카드 — 모든 화면에서 2열 유지 */
+  .summary-grid { grid-template-columns: repeat(2, 1fr); gap: 6px; }
+  .card-value { font-size: 14px; }
+
+  /* 테이블 더 작게 */
+  table { font-size: 10px; }
+  thead th { padding: 5px 6px; }
+  tbody td { padding: 5px 6px; }
+
+  /* Q&A 카드 */
+  .qna-card { border-radius: 8px; }
+  .qna-text { font-size: 12px; }
+  .qna-a-text { font-size: 12px; }
+  .qna-submit { float: none; width: 100%; margin-top: 6px; }
 }
 
 /* ── 인쇄 ───────────────────────────────────────── */
@@ -586,13 +691,18 @@ function exceedClass(n, metric) {
   return '';
 }
 
-// ── 데이터 로드 (fetch 방식) ──────────────────────
+// ── JSONP 데이터 로드 ─────────────────────────────
 function fetchJSONP(url) {
-  return fetch(url + '?action=getData', { redirect: 'follow' })
-    .then(r => {
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      return r.json();
-    });
+  return new Promise((resolve, reject) => {
+    const cb = '_cb' + Date.now();
+    const s  = document.createElement('script');
+    const tm = setTimeout(() => { cleanup(); reject(new Error('타임아웃')); }, 30000);
+    function cleanup() { clearTimeout(tm); delete window[cb]; s.remove(); }
+    window[cb] = data => { cleanup(); resolve(data); };
+    s.onerror  = ()   => { cleanup(); reject(new Error('네트워크 오류')); };
+    s.src = `${url}?action=getData&callback=${cb}`;
+    document.head.appendChild(s);
+  });
 }
 
 // ── 도움말 토글 ──────────────────────────────────
@@ -1064,8 +1174,10 @@ function renderQnA() {
         const no     = row[0] || '';
         const date   = String(row[1] || '').slice(0, 16);
         const author = row[2] || '익명';
-        const q      = String(row[3] || '').replace(/\n/g, '<br>');
-        const a      = String(row[4] || '').replace(/\n/g, '<br>');
+        const q      = String(row[3] || '').replace(/
+/g, '<br>');
+        const a      = String(row[4] || '').replace(/
+/g, '<br>');
         const aDate  = String(row[5] || '').slice(0, 16);
 
         const answerHtml = a
