@@ -737,8 +737,8 @@ async function loadData() {
 function selectTab(tab) {
   state.tab = tab;
   document.querySelectorAll('.tab-btn').forEach(b => {
-    const m = b.getAttribute('onclick')?.match(/selectTab\('(\w+)'\)/);
-    b.classList.toggle('active', !!(m && m[1] === tab));
+    const oc = b.getAttribute('onclick') || '';
+    b.classList.toggle('active', oc.includes("selectTab('" + tab + "')"));
   });
   renderTab();
 }
@@ -1174,10 +1174,8 @@ function renderQnA() {
         const no     = row[0] || '';
         const date   = String(row[1] || '').slice(0, 16);
         const author = row[2] || '익명';
-        const q      = String(row[3] || '').split('
-').join('<br>');
-        const a      = String(row[4] || '').split('
-').join('<br>');
+        const q      = String(row[3] || '').split(String.fromCharCode(10)).join('<br>');
+        const a      = String(row[4] || '').split(String.fromCharCode(10)).join('<br>');
         const aDate  = String(row[5] || '').slice(0, 16);
 
         const answerHtml = a
