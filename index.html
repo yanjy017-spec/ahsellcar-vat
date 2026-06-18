@@ -113,7 +113,6 @@ header {
 .card-value {
   font-size: 20px; font-weight: 700; font-family: var(--mono);
   letter-spacing: -0.5px; word-break: break-all;
-  font-variant-numeric: tabular-nums;
 }
 .card.danger  .card-value { color: var(--red);   }
 .card.success .card-value { color: var(--green); }
@@ -138,37 +137,20 @@ header {
   border-radius: var(--radius); overflow: hidden; overflow-x: auto;
 }
 table { width: 100%; border-collapse: collapse; font-size: 12px; }
-
-/* 헤더: 모든 표 가운데 정렬 + 구분선 */
 thead th {
-  background: #2c2c2a; color: #fff; padding: 9px 10px;
+  background: #2c2c2a; color: #fff; padding: 8px 10px;
   font-size: 11px; font-weight: 600; text-align: center; white-space: nowrap;
-  border-bottom: 2px solid #44443f;
 }
-/* 단일 헤더 행 테이블(현황/재고)도 가운데 정렬 */
-thead.single-hdr th     { text-align: center; }
-thead.single-hdr th.num { text-align: center; }
-/* 첫 헤더 셀 우측 구분선 (본문 첫 열과 정렬) */
-thead th:first-child { border-right: 1px solid #44443f; }
-
+/* 단일 헤더 행 테이블(현황/재고)용 */
+thead.single-hdr th {
+  text-align: left;
+}
+thead.single-hdr th.num { text-align: right; }
 tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
 tbody tr:hover { background: #f5f3ee; }
 tbody tr:last-child { border-bottom: none; }
-
-/* 본문 숫자 셀: 우측 정렬 + 자릿수 고정 정렬 */
-tbody td {
-  padding: 8px 10px; text-align: right;
-  font-family: var(--mono); font-size: 12px; white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
-/* 첫 열(라벨)은 좌측 정렬·본문 폰트 + 구분선 */
-tbody td:first-child {
-  text-align: left; font-family: var(--font); font-weight: 500;
-  padding-left: 14px; border-right: 1px solid var(--border);
-}
-/* 텍스트 라벨 셀(지표·비고 등) 좌측 정렬 */
-tbody td.txt { text-align: left; font-family: var(--font); }
-
+tbody td { padding: 8px 10px; text-align: right; font-family: var(--mono); font-size: 12px; white-space: nowrap; }
+tbody td:first-child { text-align: left; font-family: var(--font); font-weight: 500; padding-left: 14px; }
 /* 합계 / 기타 행 */
 .row-total td { background: #f0ede8; font-weight: 700; }
 .row-total td:first-child { padding-left: 10px; }
@@ -179,6 +161,11 @@ tbody td.txt { text-align: left; font-family: var(--font); }
 .cell-neg     { color: var(--red)   !important; }
 /* 한도초과 강조 */
 .col-exceed-hdr { background: var(--red) !important; color: #fff !important; }
+/* ERP 원본 데이터 컬럼 (매출/세계매입/의제매입) — 옅은 파랑 */
+.col-source-hdr { background: #2d6da3 !important; color: #fff !important; }
+.cell-source { background: #f0f6fc !important; }
+tbody tr:hover .cell-source { background: #e3eef8 !important; }
+.row-total .cell-source { background: #e1ecf6 !important; }
 .cell-exceed {
   background: #fff0f0 !important; color: var(--red) !important;
   font-weight: 700 !important;
@@ -801,8 +788,8 @@ function renderSummaryCards(sal, tax, dep, lim, exc, non, vat, periodLabel) {
 }
 
 const TABLE_HDR = `<div class="table-wrap"><table><thead><tr>
-  <th style="min-width:120px">구분</th>
-  <th>매출액</th><th>세금계산서매입</th><th>의제매입액</th>
+  <th style="text-align:left;min-width:120px">구분</th>
+  <th class="col-source-hdr">매출액</th><th class="col-source-hdr">세금계산서매입</th><th class="col-source-hdr">의제매입액</th>
   <th>의제매입한도</th><th>공제가능액</th>
   <th class="col-exceed-hdr">한도초과액</th>
   <th class="col-exceed-hdr">초과불공제세액</th>
@@ -817,12 +804,12 @@ function makeVatRow(row) {
   const exc     = toNum(row[6]);
   return `<tr class="${isTotal ? 'row-total' : ''}">
     <td style="${isNew ? 'color:var(--red);font-weight:600' : ''}">${label}</td>
-    <td>${fmtN(row[1])}</td><td>${fmtN(row[2])}</td><td>${fmtN(row[3])}</td>
+    <td class="cell-source">${fmtN(row[1])}</td><td class="cell-source">${fmtN(row[2])}</td><td class="cell-source">${fmtN(row[3])}</td>
     <td>${fmtN(row[4])}</td><td class="cell-success">${fmtN(row[5])}</td>
     <td class="${exc > 0 ? 'cell-exceed' : ''}">${fmtN(row[6])}</td>
     <td class="${exc > 0 ? 'cell-exceed' : ''}">${fmtN(row[7])}</td>
     <td class="cell-success">${fmtN(row[8])}</td>
-    <td class="txt" style="color:var(--muted);font-size:11px">${row[9]||''}</td>
+    <td style="font-family:var(--font);color:var(--muted);font-size:11px">${row[9]||''}</td>
   </tr>`;
 }
 
@@ -937,8 +924,12 @@ function renderTeamTab(tabKey) {
   </div>
   <div class="table-wrap"><table>
     <thead><tr>
-      <th style="min-width:160px">거래처</th>
-      ${METRICS.map(m => `<th class="${m==='초과'||m==='초과불공제세액'?'col-exceed-hdr':''}">${m}</th>`).join('')}
+      <th style="text-align:left;min-width:160px">거래처</th>
+      ${METRICS.map((m,mi) => {
+        const cls = (mi <= 2) ? 'col-source-hdr'
+                  : (m==='초과'||m==='초과불공제세액') ? 'col-exceed-hdr' : '';
+        return `<th class="${cls}">${m}</th>`;
+      }).join('')}
     </tr></thead><tbody>`;
 
   merged.forEach(row => {
@@ -951,7 +942,9 @@ function renderTeamTab(tabKey) {
     for (let i = 0; i < N; i++) {
       const val = row[startCol + i];
       const n   = toNum(val);
-      html += `<td class="${exceedClass(n, METRICS[i])}">${fmtN(val)}</td>`;
+      const srcCls = (i <= 2) ? 'cell-source' : '';
+      const cls = [srcCls, exceedClass(n, METRICS[i])].filter(Boolean).join(' ');
+      html += `<td class="${cls}">${fmtN(val)}</td>`;
     }
     html += '</tr>';
   });
@@ -1023,7 +1016,7 @@ function renderStatusTab(dataKey, title) {
       html += ri === 0
         ? `<td style="color:${color};font-weight:700">${blk.team}</td>`
         : `<td></td>`;
-      html += `<td class="txt" style="${isRate?'color:var(--muted);font-size:11px':''}">${metric}</td>`;
+      html += `<td style="font-family:var(--font);${isRate?'color:var(--muted);font-size:11px':''}">${metric}</td>`;
       row.slice(colStart, colStart+13).forEach((v, vi) => {
         const isLast = vi === 12;
         let disp;
@@ -1098,8 +1091,8 @@ function renderInventory() {
   <div class="table-wrap"><table>
     <thead>
       <tr>
-        <th style="min-width:130px">매입담당부서</th>
-        <th style="min-width:160px">소유구분</th>
+        <th style="text-align:left;min-width:130px">매입담당부서</th>
+        <th style="text-align:left;min-width:160px">소유구분</th>
         <th>대수</th><th>매입가(공급가)</th><th>총부대비(공급가)</th><th>합계(공급가)</th>
       </tr>
       <tr class="row-total" style="background:#1e40af">
@@ -1117,7 +1110,7 @@ function renderInventory() {
       const isFirst = i === 0;
       html += `<tr style="background:${isFirst?'#eff6ff':'var(--surface)'};border-bottom:1px solid var(--border)">
         <td style="font-weight:${isFirst?700:400};color:${isFirst?'var(--blue)':'var(--text)'};font-family:var(--font)">${isFirst?g.dept:''}</td>
-        <td class="txt" style="padding-left:20px;color:var(--text)">${d.owner}</td>
+        <td style="padding-left:20px;font-family:var(--font);color:var(--text)">${d.owner}</td>
         <td>${fmt(d.cnt)}</td><td>${fmt(d.amt)}</td><td>${fmt(d.cost)}</td><td>${fmt(d.total)}</td>
       </tr>`;
     });
