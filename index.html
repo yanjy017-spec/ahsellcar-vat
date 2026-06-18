@@ -154,6 +154,30 @@ header {
   padding: 12px; border-radius: 9px; font-size: 14px; font-weight: 700; cursor: pointer;
 }
 .erp-modal-btn:hover { background: #8a2424; }
+.pw-gate {
+  position: fixed; inset: 0; z-index: 10000;
+  background: linear-gradient(135deg,#1a1a18,#2c2c2a);
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+}
+.pw-box {
+  background: var(--surface); border-radius: 16px;
+  width: 100%; max-width: 360px; padding: 34px 30px 28px;
+  box-shadow: 0 24px 70px rgba(0,0,0,.45); text-align: center;
+}
+.pw-logo { font-size: 18px; font-weight: 800; color: var(--text); margin-bottom: 6px; }
+.pw-desc { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+.pw-input {
+  width: 100%; box-sizing: border-box; padding: 12px 14px;
+  border: 1.5px solid var(--border); border-radius: 9px;
+  font-size: 16px; text-align: center; letter-spacing: 3px; outline: none;
+}
+.pw-input:focus { border-color: var(--blue); }
+.pw-err { color: var(--red); font-size: 12px; font-weight: 600; min-height: 16px; margin: 8px 0 4px; }
+.pw-btn {
+  width: 100%; background: var(--blue); color: #fff; border: none;
+  padding: 12px; border-radius: 9px; font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 6px;
+}
+.pw-btn:hover { background: #134b82; }
 .section-sep {
   margin: 16px 0 8px; padding: 7px 14px;
   background: #2c2c2a; color: #fff;
@@ -511,6 +535,16 @@ footer {
 </style>
 </head>
 <body>
+
+<div class="pw-gate" id="pwGate">
+  <div class="pw-box">
+    <div class="pw-logo">🔒 오토허브셀카 관리</div>
+    <div class="pw-desc">비밀번호를 입력하세요</div>
+    <input type="password" id="pwInput" class="pw-input" placeholder="••••••" autocomplete="off" autofocus onkeydown="if(event.key==='Enter')checkPw()">
+    <div class="pw-err" id="pwErr"></div>
+    <button class="pw-btn" onclick="checkPw()">입장</button>
+  </div>
+</div>
 
 <div class="erp-modal" id="erpModal">
   <div class="erp-modal-box">
@@ -1316,8 +1350,35 @@ function closeErpModal() {
   if (m) m.style.display = 'none';
 }
 
-// 초기 로드
-loadData();
+// ── 비밀번호 게이트 ───────────────────────────────
+// 비밀번호 변경: 아래 PW_HASH 값만 새 비번의 SHA-256 해시로 교체하세요.
+var PW_HASH = 'e7042ac7d09c7bc41c8cfa5749e41858f6980643bc0db1a83cc793d3e24d3f77';
+
+async function sha256Hex(str) {
+  var buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  var bytes = Array.from(new Uint8Array(buf));
+  return bytes.map(function(b){ return b.toString(16).padStart(2,'0'); }).join('');
+}
+
+async function checkPw() {
+  var input = document.getElementById('pwInput');
+  var err   = document.getElementById('pwErr');
+  var h = await sha256Hex(input.value);
+  if (h === PW_HASH) {
+    document.getElementById('pwGate').style.display = 'none';
+    loadData();
+  } else {
+    err.textContent = '비밀번호가 올바르지 않습니다.';
+    input.value = '';
+    input.focus();
+  }
+}
+
+window.addEventListener('load', function(){
+  var i = document.getElementById('pwInput');
+  if (i) i.focus();
+});
+// 데이터 로드는 비밀번호 통과 시(checkPw)에 실행됨
 </script>
 </body>
 </html>
