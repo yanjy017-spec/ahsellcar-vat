@@ -578,7 +578,7 @@ footer {
         <button class="tab-btn" onclick="selectTab('auction')">AUCTION</button>
         <button class="tab-btn" onclick="selectTab('chulpum')">출품영업팀</button>
         <button class="tab-btn" onclick="selectTab('beopin')">법인영업팀</button>
-        <button class="tab-btn" onclick="selectTab('maepan')">매입판매팀</button>
+        <button class="tab-btn" onclick="selectTab('maepan')">플랫폼매입팀</button>
       </div>
     </div>
     <div class="tab-divider"></div>
@@ -741,7 +741,7 @@ const TEAM_TABS = {
   auction: { dataKey:'vat_auction', label:'AUCTION'   },
   chulpum: { dataKey:'vat_chulpum', label:'출품영업팀' },
   beopin:  { dataKey:'vat_beopin',  label:'법인영업팀' },
-  maepan:  { dataKey:'vat_maepan',  label:'매입판매팀' },
+  maepan:  { dataKey:'vat_maepan',  label:'플랫폼매입팀' },
 };
 
 // 7지표
@@ -1047,12 +1047,12 @@ function renderStatusTab(dataKey, title) {
 
   // 전체 팀 표시: 매출현황=B열, 경매현황=A열 기준으로 팀명 감지
   const SHOW_TEAMS = isSales
-    ? ['전사','AUCTION','출품영업팀','법인영업팀','매입판매팀']
-    : ['전체','AUCTION','출품영업팀','법인영업팀','매입판매팀'];
+    ? ['전사','AUCTION','출품영업팀','법인영업팀','매입판매팀','플랫폼매입팀']
+    : ['전체','AUCTION','출품영업팀','법인영업팀','매입판매팀','플랫폼매입팀'];
   const TEAM_COLOR = {
     '전사':'var(--text)', '전체':'var(--text)',
     'AUCTION':'var(--amber)', '출품영업팀':'var(--muted)',
-    '법인영업팀':'var(--blue)', '매입판매팀':'var(--green)',
+    '법인영업팀':'var(--blue)', '매입판매팀':'var(--green)', '플랫폼매입팀':'var(--green)',
   };
 
   const teamBlocks = [];
@@ -1074,7 +1074,7 @@ function renderStatusTab(dataKey, title) {
   });
 
   let html = `<div class="table-toolbar">
-    <span class="section-title">${title} — 전체 / AUCTION / 출품영업팀 / 법인영업팀 / 매입판매팀</span>
+    <span class="section-title">${title} — 전체 / AUCTION / 출품영업팀 / 법인영업팀 / 플랫폼매입팀</span>
     <button class="btn btn-blue" onclick="downloadCSV('${dataKey}')">↓ 엑셀 다운로드</button>
   </div>
   <div class="table-wrap"><table>
@@ -1217,7 +1217,7 @@ function downloadCSV(tabKey) {
   const rows = state.data[keyMap[tabKey]] || [];
   const labelMap = {
     total:'전사', auction:'AUCTION', chulpum:'출품영업팀',
-    beopin:'법인영업팀', maepan:'매입판매팀',
+    beopin:'법인영업팀', maepan:'플랫폼매입팀',
     sales_status:'매출현황', auction_status:'경매현황', inventory:'재고',
   };
 
